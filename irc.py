@@ -159,10 +159,11 @@ class IrcClient(IrcSocket):
 	realname = None
 	ident = None
 	channels = {}
+	serverPassword = None
 	
 	# TODO: Track channels and people
 	
-	def __init__(self, server=None, port=6667, ssl=False, serverPassword, nicks=None, ident=None, realname=None):
+	def __init__(self, server=None, port=6667, ssl=False, nicks=None, ident=None, realname=None, serverPassword=None):
 		IrcSocket.__init__(self, server, port, ssl)
 		
 		if nicks is not None:
@@ -173,6 +174,8 @@ class IrcClient(IrcSocket):
 		
 		if ident is not None:
 			self.ident = ident
+
+		self.serverPassword = serverPassword
 
 	# Our API.
 	
@@ -202,6 +205,9 @@ class IrcClient(IrcSocket):
 		IrcSocket.connect(self)
 		self.nick = self.nicks[0]
 		self._nickPos = 0
+		if self.serverPassword:
+			self.sendMessage("PASS", self.serverPassword)
+
 		self.sendMessage("USER", self.ident, "8", "*", end=self.realname)
 		self.sendMessage("NICK", self.nick)
 		
