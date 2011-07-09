@@ -1,6 +1,7 @@
 import socket
 from threading import Thread
 import logging
+import ssl
 
 class IrcOrigin:
 	nick = None
@@ -32,21 +33,26 @@ class IrcSocket(Thread):
 	_socket = None
 	_server = None
 	_port = 6667
+	_ssl = False
 	connected = False
 	logger = None
 	
 	
-	def __init__(self, server, port=6667):
+	def __init__(self, server, port=6667, use_ssl=False):
 		Thread.__init__(self, name="IrcSocket(%s)" % server)
 		
 		self._server = server
 		self._port = port
+		self._ssl = use_ssl
 		
 		self.logger = logging.getLogger("IrcSocket(%s)" % self._server)
 		
 	def connect(self):
 		
 		self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		if self._ssl:
+			self._socket = ssl.wrap_socket(self._socket)
+
 		try:
 			self._socket.connect((self._server, self._port))
 		except socket.error, message:
@@ -156,8 +162,8 @@ class IrcClient(IrcSocket):
 	
 	# TODO: Track channels and people
 	
-	def __init__(self, server=None, port=6667, nicks=None, ident=None, realname=None):
-		IrcSocket.__init__(self, server, port)
+	def __init__(self, server=None, port=6667, ssl=False, serverPassword, nicks=None, ident=None, realname=None):
+		IrcSocket.__init__(self, server, port, ssl)
 		
 		if nicks is not None:
 			self.nicks = nicks

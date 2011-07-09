@@ -35,7 +35,7 @@ class SchongoClient(IrcClient):
 		nicks = cfg.getlist("nicks")
 		ident = cfg.get("ident")
 		realname = cfg.get("real name")
-
+        
 		def get(opt):
 			try:
 				return cfg.get(opt)
@@ -47,6 +47,7 @@ class SchongoClient(IrcClient):
 		self._ns_name = get("nickserv name")
 		self._ns_pass = get("nickserv password")
 		self._ns_find = get("nickserv find")
+		ssl = get("ssl")
 
 		if self._ns_find is None:
 			self._ns_find = "is registered"
@@ -61,7 +62,7 @@ class SchongoClient(IrcClient):
 
 		channels = cfg.getlist("channels")
 
-		IrcClient.__init__(self, server, port, nicks, ident, realname)
+		IrcClient.__init__(self, server, port, ssl, nicks, ident, realname)
 
 		if channels is None:
 			channels = ["#lobby"]
