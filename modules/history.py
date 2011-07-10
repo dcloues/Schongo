@@ -1,5 +1,12 @@
 import MySQLdb
 from threading import Thread
+from ConfigParser import RawConfigParser
+
+historyConfig = RawConfigParser()
+
+def connection():
+	opts = dict(historyConfig.items('Database'))
+	return MySQLdb.connect(**opts)
 
 class HistoryLoader(Thread):
 	since = None
@@ -10,7 +17,7 @@ class HistoryLoader(Thread):
 		self.channel = channel
 
 	def run(self):
-		c = MySQLdb.connect(user="root", db="chatter")
+		c = connection()
 		cursor = c.cursor()
 		
 		query = 'SELECT chat, nick, chat_date FROM chatter WHERE channel=%s AND chat_date > '
@@ -36,7 +43,7 @@ class LastSeen(object):
 	connection = None
 
 	def __init__(self):
-		self.connection = MySQLdb.connect(user="root", db="chatter")
+		self.connection = connection()
 	
 	def close(self):
 		if self.connection is not None:
@@ -58,6 +65,7 @@ class LastSeen(object):
 		return last
 
 def onLoad():
+	historyConfig.read("data/history.cfg")
 	lastSeen = LastSeen()
 
 	@command("history", 1)
@@ -73,10 +81,11 @@ def onLoad():
 	
 	@hook("message")
 	def onMessage(ctx, msg):
-		if ctx.chan[0] is not '#':
+		# don't log private mssages to the bot
+		if ctx.chan[0] != '#':
 			return
 
-		c = MySQLdb.connect(user="root", db="chatter")
+		c = connection()
 		cursor = c.cursor()
 		cursor.execute('INSERT INTO chatter (channel, nick, chat_date, chat) VALUES (%s,%s,now(),%s)', (ctx.chan, ctx.who.nick, msg))
 		cursor.close()
