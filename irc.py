@@ -91,6 +91,13 @@ class IrcSocket(Thread):
 
 		self._socket.send(line)
 	
+	def shutdown(self):
+		if self.connected:
+			self.sendMessage("QUIT", end="shutting down")
+			self.connected = False
+			self._socket.shutdown(socket.SHUT_RDWR)
+			self._socket.close()
+	
 	def run(self):
 		if not self.connected:
 			self.connect()

@@ -10,6 +10,7 @@ import modules
 import sys
 import getopt
 import os.path
+import signal
 
 from config import Config
 
@@ -26,6 +27,15 @@ if os.path.isdir(".git"):
 		ref = ref.split(': ',1)[1]
 		with open(".git/%s" % ref) as f2:
 			version = f2.read()[:8]
+
+class SigHandler(object):
+	def __init__(self, schongos):
+		self.schongos = schongos
+
+	def onSignal(self, sig, stackFrame):
+		if sig == signal.SIGINT or sig == signal.SIGTERM:
+			for s in self.schongos.values():
+				s.shutdown()
 
 class SchongoClient(IrcClient):
 	def __init__(self, network, cfg):
@@ -217,6 +227,9 @@ The config file should go in the data directory""")
 	modules.init()
 
 	schongos = {}
+	sigHandler = SigHandler(schongos)
+	signal.signal(signal.SIGTERM, sigHandler.onSignal)
+	signal.signal(signal.SIGINT, sigHandler.onSignal)
 
 	for i in basic.getlist("networks"):
 		net = config.get_section("Network/%s" % i)
@@ -235,6 +248,7 @@ The config file should go in the data directory""")
 		schongos[i] = sch
 	
 	modules.connections = schongos
+	signal.pause()
 
 	return schongos
 
