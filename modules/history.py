@@ -41,6 +41,7 @@ class HistoryLoader(Thread):
 
 class LastSeen(object):
 	connection = None
+	userChannels = {}
 
 	def __init__(self):
 		self.connection = connection()
@@ -56,6 +57,15 @@ class LastSeen(object):
 		cursor.close()
 		self.connection.commit()
 
+	def recordQuit(self, nick):
+		if nick not in self.userChannels:
+			return
+
+		for chan in self.userChannels[nick]:
+			self.record(nick, chan)
+		
+		del self.userChannels[nick]
+
 	def get(self, nick, chan):
 		cursor = self.connection.cursor()
 		cursor.execute('SELECT last_seen from last_seen WHERE channel=%s and nick=%s', (chan, nick))
@@ -63,6 +73,12 @@ class LastSeen(object):
 		last = r[0] if r is not None else None
 		cursor.close()
 		return last
+
+	def joined(self, nick, chan):
+		if nick not in self.userChannels:
+			self.userChannels[nick] = [chan]
+		elif chan not in self.userChannels[nick]:
+			self.userChannels[nick].append(chan)
 
 def onLoad():
 	historyConfig.read("data/history.cfg")
@@ -91,10 +107,14 @@ def onLoad():
 		cursor.close()
 		c.commit()
 		c.close()
+	
+	@hook("join")
+	def onJoin(ctx):
+		lastSeen.joined(ctx.who.nick, ctx.chan)
 
 	@hook("quit")
 	def onQuit(ctx):
-		lastSeen.record(ctx.who.nick, ctx.chan)
+		lastSeen.recordQuit(ctx.who.nick)
 	
 	@hook("part")
 	def onPart(ctx):
